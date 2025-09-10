@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface SoundOptions {
   volume?: number
@@ -74,7 +74,7 @@ export function useSound(src: string, options: SoundOptions = {}) {
 function generateNotificationSound(type: 'notification' | 'success' | 'error') {
   if (typeof window === 'undefined') return null
   
-  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+  const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
   
   const oscillator = audioContext.createOscillator()
   const gainNode = audioContext.createGain()

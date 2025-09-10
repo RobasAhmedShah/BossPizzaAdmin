@@ -1,9 +1,9 @@
 "use client"
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Star, Clock, AlertTriangle, Zap, Filter, Search, SortAsc, SortDesc, Package, CheckCircle, XCircle } from 'lucide-react'
-import { Order, OrderStatus } from '@/types/orders'
+import { motion } from 'framer-motion'
+import { Star, Clock, AlertTriangle, Filter, Search, SortAsc, SortDesc, Package, CheckCircle, XCircle } from 'lucide-react'
+import { Order } from '@/types/orders'
 import { cn } from '@/lib/utils'
 
 interface PriorityManagerProps {
@@ -19,7 +19,6 @@ type FilterOption = 'all' | 'urgent' | 'pending' | 'confirmed' | 'preparing' | '
 export function PriorityManager({ 
   orders, 
   onOrdersFiltered, 
-  onToggleUrgent, 
   urgentOrders 
 }: PriorityManagerProps) {
   const [searchTerm, setSearchTerm] = useState('')

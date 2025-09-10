@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, MapPin, Phone, Package, ChevronRight, Eye, MessageSquare, Star, Zap, AlertTriangle } from 'lucide-react'
+import { Clock, MapPin, Phone, ChevronRight, Eye, Star, Zap } from 'lucide-react'
 import { format } from 'date-fns'
 import { Order, OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, NEXT_STATUS } from '@/types/orders'
 import { ShimmerButton } from '@/components/magicui/shimmer-button'
@@ -16,6 +16,7 @@ interface OrderCardEnhancedProps {
   index: number
   isUrgent?: boolean
   onToggleUrgent?: (orderId: string) => void
+  isSelected?: boolean
 }
 
 export function OrderCardEnhanced({ 
@@ -25,7 +26,8 @@ export function OrderCardEnhanced({
   onSelect, 
   index,
   isUrgent = false,
-  onToggleUrgent
+  onToggleUrgent,
+  isSelected = false
 }: OrderCardEnhancedProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
@@ -61,7 +63,8 @@ export function OrderCardEnhanced({
       onHoverEnd={() => setIsHovered(false)}
       className={cn(
         "bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden transition-all duration-300 transform relative group cursor-pointer",
-        getPriorityColor()
+        getPriorityColor(),
+        isSelected && "ring-2 ring-blue-500 shadow-xl"
       )}
       onClick={() => setShowDetails(!showDetails)}
     >

@@ -3,7 +3,7 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 
 import { cn } from "@/lib/utils"
 
@@ -31,7 +31,7 @@ export interface ToastProps
 }
 
 const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
-  ({ className, variant, onClose, children, ...props }, ref) => {
+  ({ className, variant, onClose, children }, ref) => {
     return (
       <motion.div
         ref={ref}

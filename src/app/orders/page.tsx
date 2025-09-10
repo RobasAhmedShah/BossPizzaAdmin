@@ -1,16 +1,13 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Order, OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from '@/types/orders'
-// import { format } from 'date-fns' // Removed unused import
-import { Clock, MapPin, DollarSign, Package, ChevronRight, MessageSquare } from 'lucide-react'
+import { MapPin, Package, ChevronRight, MessageSquare } from 'lucide-react'
 import { AnimatedGridPattern } from '@/components/magicui/animated-grid-pattern'
 import { TextAnimate } from '@/components/magicui/text-animate'
-import { NumberTicker } from '@/components/magicui/number-ticker'
 import { OrderCardEnhanced } from '@/components/orders/order-card-enhanced'
 import { PriorityManager } from '@/components/orders/priority-manager'
-import { NotificationCenter } from '@/components/orders/notification-center'
 import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/hooks/use-toast'
 
@@ -53,14 +50,13 @@ export default function OrdersPage() {
         })
       )
 
-      setOrders(ordersWithItems as Order[])
-      setFilteredOrders(ordersWithItems as Order[])
+      setOrders(ordersWithItems)
     } catch (error) {
       console.error('Error fetching orders:', error)
       toast({
         title: "Error",
         description: "Failed to fetch orders. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setLoading(false)
@@ -68,35 +64,16 @@ export default function OrdersPage() {
   }, [toast])
 
   useEffect(() => {
-    if (supabase) {
-      fetchOrders()
-      // Set up real-time subscription
-      const subscription = supabase
-        .channel('orders_channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-          fetchOrders()
-        })
-        .subscribe()
-
-      return () => {
-        subscription.unsubscribe()
-      }
-    } else {
-      setLoading(false)
-    }
+    fetchOrders()
   }, [fetchOrders])
 
-  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
-    if (!supabase) {
-      console.warn('Supabase not configured')
-      return
-    }
+  const updateOrderStatus = useCallback(async (orderId: string, newStatus: OrderStatus) => {
+    if (!supabase) return
 
     try {
       setUpdatingOrder(orderId)
-
-      // Update order status
-      const { error: updateError } = await supabase
+      
+      const { error } = await supabase
         .from('orders')
         .update({ 
           order_status: newStatus,
@@ -104,39 +81,29 @@ export default function OrdersPage() {
         })
         .eq('id', orderId)
 
-      if (updateError) throw updateError
+      if (error) throw error
 
-      // Add to status history
-      const { error: historyError } = await supabase
-        .from('order_status_history')
-        .insert({
-          order_id: orderId,
-          status: newStatus,
-          notes: `Status updated to ${ORDER_STATUS_LABELS[newStatus]}`,
-          created_by: 'staff'
-        })
+      setOrders(prev => prev.map(order => 
+        order.id === orderId 
+          ? { ...order, order_status: newStatus, updated_at: new Date().toISOString() }
+          : order
+      ))
 
-      if (historyError) throw historyError
-
-      // Refresh orders
-      await fetchOrders()
-      
       toast({
-        title: "Status Updated",
-        description: `Order ${orderId} status updated to ${ORDER_STATUS_LABELS[newStatus]}`,
-        variant: "success"
+        title: "Order Updated",
+        description: `Order status changed to ${ORDER_STATUS_LABELS[newStatus]}`,
       })
     } catch (error) {
-      console.error('Error updating order status:', error)
+      console.error('Error updating order:', error)
       toast({
-        title: "Update Failed",
+        title: "Error",
         description: "Failed to update order status. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setUpdatingOrder(null)
     }
-  }
+  }, [toast])
 
   const handleToggleUrgent = useCallback((orderId: string) => {
     setUrgentOrders(prev => {
@@ -144,16 +111,14 @@ export default function OrdersPage() {
       if (newSet.has(orderId)) {
         newSet.delete(orderId)
         toast({
-          title: "Priority Removed",
-          description: "Order priority removed",
-          variant: "default"
+          title: "Order Removed",
+          description: "Order removed from urgent list",
         })
       } else {
         newSet.add(orderId)
         toast({
-          title: "Priority Set",
-          description: "Order marked as urgent",
-          variant: "warning"
+          title: "Order Marked Urgent",
+          description: "Order added to urgent list",
         })
       }
       return newSet
@@ -164,228 +129,108 @@ export default function OrdersPage() {
     setFilteredOrders(filtered)
   }, [])
 
-  const getStatusCounts = () => {
-    const counts: Record<OrderStatus, number> = {
-      pending: 0,
-      confirmed: 0,
-      preparing: 0,
-      ready: 0,
-      out_for_delivery: 0,
-      delivered: 0,
-      cancelled: 0
-    }
-
-    orders.forEach(order => {
-      counts[order.order_status]++
-    })
-
-    return counts
-  }
-
-  const getTodayRevenue = () => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    return orders
-      .filter(order => {
-        const orderDate = new Date(order.created_at)
-        orderDate.setHours(0, 0, 0, 0)
-        return orderDate.getTime() === today.getTime() && order.order_status !== 'cancelled'
-      })
-      .reduce((sum, order) => sum + order.total_amount, 0)
-  }
-
-  const statusCounts = getStatusCounts()
-  const todayRevenue = getTodayRevenue()
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <TextAnimate 
-            animation="fadeIn" 
-            className="text-xl font-medium text-slate-600 dark:text-slate-400"
-          >
-            Loading orders...
-          </TextAnimate>
-        </div>
-      </div>
-    )
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 overflow-hidden">
         <AnimatedGridPattern
           numSquares={30}
           maxOpacity={0.1}
-          duration={4}
-          className="opacity-30"
+          duration={3}
+          className="opacity-40"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5" />
       </div>
 
-      {/* Header */}
-      <div className="relative z-10 p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <TextAnimate 
-                animation="slideUp" 
-                by="word"
-                className="text-4xl lg:text-5xl font-bold text-slate-900 dark:text-slate-100 mb-4"
-              >
-                Boss Pizza Orders
-              </TextAnimate>
-              <p className="text-lg text-slate-600 dark:text-slate-400">
-                Real-time order management and tracking
-              </p>
-            </div>
-            <NotificationCenter 
-              orders={orders}
-              onOrderSelect={(orderId) => {
-                const order = orders.find(o => o.id === orderId)
-                if (order) setSelectedOrder(order)
-              }}
-            />
-          </div>
+      <div className="relative z-10 container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <TextAnimate
+            className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4"
+          >
+            Boss Pizza Admin
+          </TextAnimate>
+          <p className="text-slate-600 dark:text-slate-400 text-lg">
+            Order Management Dashboard
+          </p>
+        </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700 relative overflow-hidden">
-              <div className="relative z-10">
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Total Orders</p>
-                <div className="flex items-center space-x-2">
-                  <NumberTicker
-                    value={orders.length}
-                    className="text-3xl font-bold text-slate-900 dark:text-slate-100"
-                  />
-                  <Package className="w-6 h-6 text-blue-500" />
-                </div>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent" />
-            </div>
+        {/* Priority Manager */}
+        <PriorityManager
+          orders={orders}
+          onOrdersFiltered={handleOrdersFiltered}
+          onToggleUrgent={handleToggleUrgent}
+          urgentOrders={urgentOrders}
+        />
 
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700 relative overflow-hidden">
-              <div className="relative z-10">
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Pending</p>
-                <div className="flex items-center space-x-2">
-                  <NumberTicker
-                    value={statusCounts.pending}
-                    className="text-3xl font-bold text-yellow-600"
-                  />
-                  <Clock className="w-6 h-6 text-yellow-500" />
-                </div>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 to-transparent" />
+
+        {/* Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Orders List */}
+          <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredOrders.map((order, index) => (
+                <OrderCardEnhanced 
+                  key={order.id} 
+                  order={order} 
+                  onStatusUpdate={updateOrderStatus}
+                  isUpdating={updatingOrder === order.id}
+                  onSelect={() => setSelectedOrder(order)}
+                  index={index}
+                  isUrgent={urgentOrders.has(order.id)}
+                  onToggleUrgent={handleToggleUrgent}
+                  isSelected={selectedOrder?.id === order.id}
+                />
+              ))}
             </div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700 relative overflow-hidden">
-              <div className="relative z-10">
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">In Progress</p>
-                <div className="flex items-center space-x-2">
-                  <NumberTicker
-                    value={statusCounts.confirmed + statusCounts.preparing}
-                    className="text-3xl font-bold text-orange-600"
-                  />
-                  <MessageSquare className="w-6 h-6 text-orange-500" />
-                </div>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-transparent" />
-            </div>
-
-           
-          </div>
-
-          {/* Priority Manager */}
-          <PriorityManager
-            orders={orders}
-            onOrdersFiltered={handleOrdersFiltered}
-            onToggleUrgent={handleToggleUrgent}
-            urgentOrders={urgentOrders}
-          />
-
-          {/* Orders Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredOrders.map((order, index) => (
-              <OrderCardEnhanced 
-                key={order.id} 
-                order={order} 
-                onStatusUpdate={updateOrderStatus}
-                isUpdating={updatingOrder === order.id}
-                onSelect={() => setSelectedOrder(order)}
-                index={index}
-                isUrgent={urgentOrders.has(order.id)}
-                onToggleUrgent={handleToggleUrgent}
-              />
-            ))}
-          </div>
-
-          {!supabase && (
-            <div className="text-center py-16">
-              <Package className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-              <TextAnimate 
-                animation="fadeIn" 
-                className="text-xl font-medium text-slate-600 dark:text-slate-400"
-              >
-                Supabase not configured
-              </TextAnimate>
-              <p className="text-slate-500 dark:text-slate-500 mt-2">
-                Please set up your Supabase credentials to view orders
-              </p>
-              <div className="mt-4 p-4 bg-slate-100 dark:bg-slate-800 rounded-lg max-w-md mx-auto">
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                  Add these to your .env.local file:
+            {/* No Orders Message */}
+            {filteredOrders.length === 0 && !loading && (
+              <div className="text-center py-12">
+                <Package className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                  No orders found
+                </h3>
+                <p className="text-slate-500 dark:text-slate-500">
+                  {orders.length === 0
+                    ? "No orders have been placed yet."
+                    : "Try adjusting your filters to see more orders."}
                 </p>
-                <code className="text-xs text-slate-800 dark:text-slate-200 block">
-                  NEXT_PUBLIC_SUPABASE_URL=your_supabase_url<br/>
-                  NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-                </code>
               </div>
-            </div>
-          )}
+            )}
 
-          {supabase && filteredOrders.length === 0 && orders.length > 0 && (
-            <div className="text-center py-16">
-              <Package className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-              <TextAnimate 
-                animation="fadeIn" 
-                className="text-xl font-medium text-slate-600 dark:text-slate-400"
-              >
-                No orders match your filters
-              </TextAnimate>
-              <p className="text-slate-500 dark:text-slate-500 mt-2">
-                Try adjusting your search or filter criteria
-              </p>
-            </div>
-          )}
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-slate-600 dark:text-slate-400">Loading orders...</p>
+              </div>
+            )}
+          </div>
 
-          {supabase && orders.length === 0 && (
-            <div className="text-center py-16">
-              <Package className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-              <TextAnimate 
-                animation="fadeIn" 
-                className="text-xl font-medium text-slate-600 dark:text-slate-400"
-              >
-                No orders yet
-              </TextAnimate>
-              <p className="text-slate-500 dark:text-slate-500 mt-2">
-                Orders will appear here when customers place them
-              </p>
-            </div>
-          )}
+          {/* Right Column - Order Details */}
+          <div className="lg:col-span-1">
+            {selectedOrder ? (
+              <OrderDetailPanel
+                order={selectedOrder}
+                onClose={() => setSelectedOrder(null)}
+              />
+            ) : (
+              <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700 h-[calc(100vh-8rem)] flex items-center justify-center">
+                <div className="text-center py-12">
+                  <Package className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                    Select an Order
+                  </h3>
+                  <p className="text-slate-500 dark:text-slate-500 text-sm">
+                    Click on an order to see details here
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* Order Detail Modal */}
-      {selectedOrder && (
-        <OrderDetailModal 
-          order={selectedOrder} 
-          onClose={() => setSelectedOrder(null)}
-        />
-      )}
 
       {/* Toast Notifications */}
       <Toaster />
@@ -393,159 +238,188 @@ export default function OrdersPage() {
   )
 }
 
-interface OrderDetailModalProps {
+// Order Detail Panel Component
+interface OrderDetailPanelProps {
   order: Order
   onClose: () => void
 }
 
-function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
+function OrderDetailPanel({ order, onClose }: OrderDetailPanelProps) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              Order Details
-            </h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-            >
-              <ChevronRight className="w-6 h-6 text-slate-500" />
-            </button>
+    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 h-[calc(100vh-8rem)] sticky top-6 flex flex-col">
+      <div className="flex items-center justify-between mb-6 p-6 pb-0">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+          Order #{order.order_number}
+        </h2>
+        <button
+          onClick={onClose}
+          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+        >
+          <ChevronRight className="w-5 h-5 text-slate-500" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-6 pt-0 space-y-6">
+        {/* Order Status */}
+        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
+          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+            Status
+          </span>
+          <span
+            className={`px-3 py-1 rounded-full text-sm font-medium ${ORDER_STATUS_COLORS[order.order_status]}`}
+          >
+            {ORDER_STATUS_LABELS[order.order_status]}
+          </span>
+        </div>
+
+        {/* Customer Info */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            Customer Information
+          </h3>
+          <div className="space-y-3">
+            <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+              <p className="text-sm text-slate-600 dark:text-slate-400">Name</p>
+              <p className="font-medium text-slate-900 dark:text-slate-100">
+                {order.customer_name}
+              </p>
+            </div>
+            <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+              <p className="text-sm text-slate-600 dark:text-slate-400">Phone</p>
+              <p className="font-medium text-slate-900 dark:text-slate-100">
+                {order.customer_phone}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Order Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Order Information</h3>
-              <div className="space-y-2 text-sm">
-                <p><span className="font-medium">Order #:</span> {order.order_number}</p>
-                <p><span className="font-medium">Status:</span> 
-                  <span className={`ml-2 px-2 py-1 rounded-full text-xs ${ORDER_STATUS_COLORS[order.order_status]}`}>
-                    {ORDER_STATUS_LABELS[order.order_status]}
-                  </span>
-                </p>
-                <p><span className="font-medium">Payment:</span> {order.payment_method}</p>
-                <p><span className="font-medium">Total:</span> 
-                  <span className="text-green-600 font-bold ml-2">Rs {order.total_amount.toFixed(2)}</span>
-                </p>
+        {/* Order Items */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            Order Items
+          </h3>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {order.items?.map((item, index) => (
+              <div
+                key={index}
+                className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">
+                      {item.item_name}
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      Type: {item.item_type} • Qty: {item.quantity}
+                    </p>
+                    {item.customizations && Object.keys(item.customizations).length > 0 && (
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                        Customizations: {JSON.stringify(item.customizations)}
+                      </p>
+                    )}
+                  </div>
+                  <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm ml-2">
+                    Rs {item.total_price}
+                  </p>
+                </div>
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
 
-            <div>
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Customer Information</h3>
-              <div className="space-y-2 text-sm">
-                <p><span className="font-medium">Name:</span> {order.customer_name}</p>
-                <p><span className="font-medium">Email:</span> {order.customer_email}</p>
-                <p><span className="font-medium">Phone:</span> {order.customer_phone}</p>
-                {order.company && (
-                  <p><span className="font-medium">Company:</span> {order.company}</p>
-                )}
-              </div>
+        {/* Order Summary */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            Order Summary
+          </h3>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600 dark:text-slate-400">Subtotal</span>
+              <span className="font-medium">Rs {order.subtotal}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600 dark:text-slate-400">Delivery Fee</span>
+              <span className="font-medium">Rs {order.delivery_fee}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600 dark:text-slate-400">Tax</span>
+              <span className="font-medium">Rs {order.tax_amount}</span>
+            </div>
+            <div className="flex justify-between text-base font-bold border-t border-slate-200 dark:border-slate-600 pt-2">
+              <span>Total</span>
+              <span>Rs {order.total_amount}</span>
             </div>
           </div>
+        </div>
 
-          {/* Delivery Address */}
-          <div>
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Delivery Address</h3>
-            <div className="bg-slate-50 dark:bg-slate-700 p-4 rounded-lg">
+        {/* Delivery Address */}
+        {order.delivery_address && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              Delivery Address
+            </h3>
+            <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
               <div className="flex items-start space-x-2">
-                <MapPin className="w-5 h-5 text-slate-400 mt-0.5" />
+                <MapPin className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
                 <div className="text-sm">
-                  <p>{order.delivery_address.street}</p>
-                  <p>{order.delivery_address.city}, {order.delivery_address.state}</p>
-                  <p>{order.delivery_address.zipCode}</p>
+                  <p className="font-medium text-slate-900 dark:text-slate-100">
+                    {order.delivery_address.street}
+                  </p>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    {order.delivery_address.city}, {order.delivery_address.state}
+                  </p>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    {order.delivery_address.zipCode}, {order.delivery_address.country}
+                  </p>
                   {(() => {
-                    const address = order.delivery_address as Record<string, unknown>;
-                    if (address.landmark) {
-                      return <p className="text-slate-500 mt-1">Landmark: {String(address.landmark)}</p>;
-                    }
-                    return null;
+                    const address = order.delivery_address as Record<string, unknown>
+                    return address.landmark ? (
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                        Landmark: {String(address.landmark)}
+                      </p>
+                    ) : null
                   })()}
                 </div>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Order Items */}
-          <div>
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Order Items</h3>
-            <div className="space-y-3">
-              {order.items.map((item) => (
-                <div key={item.id} className="flex justify-between items-start p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900 dark:text-slate-100">{item.item_name}</p>
-                    {item.item_description && (
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{item.item_description}</p>
-                    )}
-                    <p className="text-sm text-slate-500 mt-1">Quantity: {item.quantity}</p>
-                    {item.customizations && Object.keys(item.customizations).length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Customizations:</p>
-                        <div className="text-xs text-slate-500 mt-1">
-                          {Object.entries(item.customizations).map(([key, value]) => (
-                            <p key={key}>• {key}: {String(value)}</p>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-right ml-4">
-                    <p className="font-bold text-slate-900 dark:text-slate-100">
-                      Rs {item.total_price.toFixed(2)}
-                    </p>
-                    <p className="text-sm text-slate-500">
-                      Rs {item.unit_price.toFixed(2)} each
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Order Summary */}
-          <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>Rs {order.subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tax:</span>
-                <span>Rs {order.tax_amount.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Delivery Fee:</span>
-                <span>Rs {order.delivery_fee.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between font-bold text-lg border-t border-slate-200 dark:border-slate-700 pt-2">
-                <span>Total:</span>
-                <span className="text-green-600">Rs {order.total_amount.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-
-          {order.order_notes && (
-            <div>
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Order Notes</h3>
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+        {/* Order Notes */}
+        {order.order_notes && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              Order Notes
+            </h3>
+            <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <MessageSquare className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
                 <p className="text-sm text-slate-700 dark:text-slate-300">{order.order_notes}</p>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        <div className="p-6 border-t border-slate-200 dark:border-slate-700">
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
-            >
-              Close
-            </button>
+        {/* Order Timestamps */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            Order Timeline
+          </h3>
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-slate-600 dark:text-slate-400">Ordered</span>
+              <span className="font-medium">
+                {new Date(order.created_at).toLocaleString()}
+              </span>
+            </div>
+            {order.updated_at !== order.created_at && (
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-600 dark:text-slate-400">Last Updated</span>
+                <span className="font-medium">
+                  {new Date(order.updated_at).toLocaleString()}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
