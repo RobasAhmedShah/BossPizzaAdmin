@@ -1,103 +1,126 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import React, { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { TextAnimate } from '@/components/magicui/text-animate'
+import { AnimatedGridPattern } from '@/components/magicui/animated-grid-pattern'
+import { ShimmerButton } from '@/components/magicui/shimmer-button'
+import { Ripple } from '@/components/magicui/ripple'
+import { Pizza, ArrowRight, BarChart3, Users, Clock } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+export default function HomePage() {
+  const router = useRouter()
+
+  // Auto-redirect to orders page after a brief welcome
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.push('/orders')
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [router])
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 relative overflow-hidden flex items-center justify-center">
+      {/* Background Pattern */}
+      <AnimatedGridPattern
+        numSquares={40}
+        maxOpacity={0.1}
+        duration={3}
+        repeatDelay={1}
+        className={cn(
+          "[mask-image:radial-gradient(500px_circle_at_center,white,transparent)]",
+          "inset-x-0 inset-y-[-30%] h-[200%] skew-y-12",
+        )}
+      />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      {/* Content */}
+      <div className="relative z-10 text-center max-w-4xl mx-auto px-6">
+        {/* Logo and Welcome */}
+        <div className="mb-8">
+          <div className="flex items-center justify-center mb-6">
+            <div className="bg-orange-500 rounded-full p-4 mr-4">
+              <Pizza className="w-12 h-12 text-white" />
+            </div>
+            <TextAnimate 
+              animation="slideUp" 
+              by="word"
+              className="text-5xl lg:text-7xl font-bold text-slate-900 dark:text-slate-100"
+            >
+              Boss Pizza
+            </TextAnimate>
+          </div>
+          
+          <TextAnimate 
+            animation="blurInUp" 
+            by="word"
+            className="text-2xl lg:text-3xl font-semibold text-slate-700 dark:text-slate-300 mb-4"
+            delay={0.5}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Order Management System
+          </TextAnimate>
+          
+          <TextAnimate 
+            animation="fadeIn" 
+            by="word"
+            className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto"
+            delay={1}
           >
-            Read our docs
-          </a>
+            Real-time order tracking, seamless workflow management, and beautiful analytics for your restaurant operations.
+          </TextAnimate>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Features */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700">
+            <Clock className="w-8 h-8 text-blue-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Real-time Updates</h3>
+            <p className="text-slate-600 dark:text-slate-400 text-sm">
+              Instant notifications and live order status tracking
+            </p>
+          </div>
+          
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700">
+            <BarChart3 className="w-8 h-8 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Beautiful Analytics</h3>
+            <p className="text-slate-600 dark:text-slate-400 text-sm">
+              Visual insights and performance metrics at a glance
+            </p>
+          </div>
+          
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700">
+            <Users className="w-8 h-8 text-purple-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Team Friendly</h3>
+            <p className="text-slate-600 dark:text-slate-400 text-sm">
+              Intuitive interface designed for restaurant staff
+            </p>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <div className="mb-8">
+          <ShimmerButton
+            onClick={() => router.push('/orders')}
+            className="px-8 py-4 text-lg font-medium"
+            shimmerColor="#ffffff"
+            background="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+          >
+            <span className="flex items-center space-x-2">
+              <span>View Orders Dashboard</span>
+              <ArrowRight className="w-5 h-5" />
+            </span>
+          </ShimmerButton>
+        </div>
+
+        {/* Auto-redirect notice */}
+        <p className="text-sm text-slate-500 dark:text-slate-500">
+          Redirecting to orders dashboard in a few seconds...
+        </p>
+      </div>
+
+      {/* Ripple Effect */}
+      <Ripple />
     </div>
-  );
+  )
 }
