@@ -54,6 +54,8 @@ export default function OrdersPage() {
       // Fetch order items for each order
       const ordersWithItems = await Promise.all(
         ordersData.map(async (order) => {
+          if (!supabase) return { ...order, items: [] }
+          
           const { data: items, error: itemsError } = await supabase
             .from('order_items')
             .select('*')
@@ -238,7 +240,7 @@ export default function OrdersPage() {
 
             <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-200 dark:border-slate-700 relative overflow-hidden">
               <div className="relative z-10">
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Today's Revenue</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Today&apos;s Revenue</p>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-slate-600 dark:text-slate-400">₹</span>
                   <NumberTicker 

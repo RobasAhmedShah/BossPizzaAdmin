@@ -36,7 +36,7 @@ export interface OrderItem {
   quantity: number
   unit_price: number
   total_price: number
-  customizations: any
+  customizations: Record<string, unknown>
   created_at: string
 }
 

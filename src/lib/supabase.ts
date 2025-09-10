@@ -20,7 +20,7 @@ export type Database = {
           customer_email: string
           customer_phone: string
           company: string | null
-          delivery_address: any
+          delivery_address: Record<string, unknown>
           order_notes: string | null
           payment_method: string
           subtotal: number
@@ -40,7 +40,7 @@ export type Database = {
           customer_email: string
           customer_phone: string
           company?: string | null
-          delivery_address: any
+          delivery_address: Record<string, unknown>
           order_notes?: string | null
           payment_method?: string
           subtotal?: number
@@ -60,7 +60,7 @@ export type Database = {
           customer_email?: string
           customer_phone?: string
           company?: string | null
-          delivery_address?: any
+          delivery_address?: Record<string, unknown>
           order_notes?: string | null
           payment_method?: string
           subtotal?: number
@@ -85,7 +85,7 @@ export type Database = {
           quantity: number
           unit_price: number
           total_price: number
-          customizations: any
+          customizations: Record<string, unknown>
           created_at: string
         }
         Insert: {
@@ -98,7 +98,7 @@ export type Database = {
           quantity?: number
           unit_price: number
           total_price: number
-          customizations?: any
+          customizations?: Record<string, unknown>
           created_at?: string
         }
         Update: {
@@ -111,7 +111,7 @@ export type Database = {
           quantity?: number
           unit_price?: number
           total_price?: number
-          customizations?: any
+          customizations?: Record<string, unknown>
           created_at?: string
         }
       }
