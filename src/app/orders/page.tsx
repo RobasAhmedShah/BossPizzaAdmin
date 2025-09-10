@@ -242,7 +242,7 @@ export default function OrdersPage() {
               <div className="relative z-10">
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Today&apos;s Revenue</p>
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">₹</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">Rs</span>
                   <NumberTicker 
                     value={todayRevenue} 
                     decimalPlaces={2}
@@ -361,7 +361,7 @@ function OrderCard({ order, onStatusUpdate, isUpdating, onSelect, index }: Order
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-green-600">
-              ₹{order.total_amount.toFixed(2)}
+              Rs {order.total_amount.toFixed(2)}
             </p>
             <p className="text-sm text-slate-500">
               {order.items.reduce((sum, item) => sum + item.quantity, 0)} items
@@ -401,7 +401,7 @@ function OrderCard({ order, onStatusUpdate, isUpdating, onSelect, index }: Order
                   {item.quantity}x {item.item_name}
                 </span>
                 <span className="text-slate-900 dark:text-slate-100 font-medium">
-                  ₹{item.total_price.toFixed(2)}
+                  Rs {item.total_price.toFixed(2)}
                 </span>
               </div>
             ))}
@@ -539,7 +539,7 @@ function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
                     </div>
                     <div className="text-right">
                       <p className="font-medium text-slate-900 dark:text-slate-100">
-                        ₹{item.total_price.toFixed(2)}
+                        Rs {item.total_price.toFixed(2)}
                       </p>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
                         Qty: {item.quantity}
@@ -571,19 +571,19 @@ function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-slate-600 dark:text-slate-400">Subtotal</span>
-                <span className="text-slate-900 dark:text-slate-100">₹{order.subtotal.toFixed(2)}</span>
+                <span className="text-slate-900 dark:text-slate-100">Rs {order.subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600 dark:text-slate-400">Tax</span>
-                <span className="text-slate-900 dark:text-slate-100">₹{order.tax_amount.toFixed(2)}</span>
+                <span className="text-slate-900 dark:text-slate-100">Rs {order.tax_amount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600 dark:text-slate-400">Delivery Fee</span>
-                <span className="text-slate-900 dark:text-slate-100">₹{order.delivery_fee.toFixed(2)}</span>
+                <span className="text-slate-900 dark:text-slate-100">Rs {order.delivery_fee.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t border-slate-200 dark:border-slate-600 pt-2">
                 <span className="text-slate-900 dark:text-slate-100">Total</span>
-                <span className="text-green-600">₹{order.total_amount.toFixed(2)}</span>
+                <span className="text-green-600">Rs {order.total_amount.toFixed(2)}</span>
               </div>
             </div>
           </div>
