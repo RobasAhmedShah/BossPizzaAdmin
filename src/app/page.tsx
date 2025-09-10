@@ -41,14 +41,18 @@ export default function HomePage() {
         <div className="mb-8">
           <div className="flex items-center justify-center mb-6">
             <div className="bg-orange-500 rounded-full p-4 mr-4">
-              <Pizza className="w-12 h-12 text-white" />
+              <img 
+                src="/BBP.jpg" 
+                alt="Boss Pizza Logo" 
+                className="w-12 h-12 object-contain"
+              />
             </div>
             <TextAnimate 
               animation="slideUp" 
               by="word"
               className="text-5xl lg:text-7xl font-bold text-slate-900 dark:text-slate-100"
             >
-              Boss Pizza
+              Big Boss Pizza
             </TextAnimate>
           </div>
           

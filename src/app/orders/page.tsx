@@ -187,7 +187,7 @@ export default function OrdersPage() {
               by="word"
               className="text-4xl lg:text-5xl font-bold text-slate-900 dark:text-slate-100 mb-4"
             >
-              Boss Pizza Orders
+              Big Boss Pizza Orders
             </TextAnimate>
             <p className="text-lg text-slate-600 dark:text-slate-400">
               Real-time order management and tracking
