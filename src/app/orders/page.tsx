@@ -164,9 +164,9 @@ export default function OrdersPage() {
         />
 
 
-        {/* Two Column Layout */}
+        {/* Responsive Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Orders List */}
+          {/* Orders List - Full width on mobile, 2/3 on desktop */}
           <div className="lg:col-span-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredOrders.map((order, index) => (
@@ -208,8 +208,8 @@ export default function OrdersPage() {
             )}
           </div>
 
-          {/* Right Column - Order Details */}
-          <div className="lg:col-span-1">
+          {/* Right Column - Order Details Panel (Desktop Only) */}
+          <div className="hidden lg:block lg:col-span-1">
             {selectedOrder ? (
               <OrderDetailPanel
                 order={selectedOrder}
@@ -230,6 +230,24 @@ export default function OrdersPage() {
             )}
           </div>
         </div>
+
+        {/* Mobile Modal - Order Details */}
+        {selectedOrder && (
+          <div 
+            className="lg:hidden fixed inset-0 bg-black/50 flex items-end justify-center p-0 z-50"
+            onClick={() => setSelectedOrder(null)}
+          >
+            <div 
+              className="bg-white dark:bg-slate-800 w-full h-[90vh] rounded-t-xl overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <OrderDetailMobileModal
+                order={selectedOrder}
+                onClose={() => setSelectedOrder(null)}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Toast Notifications */}
@@ -421,6 +439,199 @@ function OrderDetailPanel({ order, onClose }: OrderDetailPanelProps) {
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Mobile Modal Component for Order Details
+interface OrderDetailMobileModalProps {
+  order: Order
+  onClose: () => void
+}
+
+function OrderDetailMobileModal({ order, onClose }: OrderDetailMobileModalProps) {
+  return (
+    <div className="flex flex-col h-full w-full">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+          Order #{order.order_number}
+        </h2>
+        <button
+          onClick={onClose}
+          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+        >
+          <ChevronRight className="w-5 h-5 text-slate-500 rotate-90" />
+        </button>
+      </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto overscroll-contain" style={{ maxHeight: 'calc(90vh - 80px)' }}>
+        <div className="p-4 space-y-6">
+        {/* Order Status */}
+        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
+          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+            Status
+          </span>
+          <span
+            className={`px-3 py-1 rounded-full text-sm font-medium ${ORDER_STATUS_COLORS[order.order_status]}`}
+          >
+            {ORDER_STATUS_LABELS[order.order_status]}
+          </span>
+        </div>
+
+        {/* Customer Info */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            Customer Information
+          </h3>
+          <div className="grid grid-cols-1 gap-3">
+            <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+              <p className="text-sm text-slate-600 dark:text-slate-400">Name</p>
+              <p className="font-medium text-slate-900 dark:text-slate-100">
+                {order.customer_name}
+              </p>
+            </div>
+            <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+              <p className="text-sm text-slate-600 dark:text-slate-400">Phone</p>
+              <p className="font-medium text-slate-900 dark:text-slate-100">
+                {order.customer_phone}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Order Items */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            Order Items
+          </h3>
+          <div className="space-y-3">
+            {order.items?.map((item, index) => (
+              <div
+                key={index}
+                className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className="font-medium text-slate-900 dark:text-slate-100">
+                      {item.item_name}
+                    </p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      Type: {item.item_type} • Qty: {item.quantity}
+                    </p>
+                    {item.customizations && Object.keys(item.customizations).length > 0 && (
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">
+                        Customizations: {JSON.stringify(item.customizations)}
+                      </p>
+                    )}
+                  </div>
+                  <p className="font-semibold text-slate-900 dark:text-slate-100 ml-3">
+                    Rs {item.total_price}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Order Summary */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            Order Summary
+          </h3>
+          <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600 dark:text-slate-400">Subtotal</span>
+              <span className="font-medium">Rs {order.subtotal}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600 dark:text-slate-400">Delivery Fee</span>
+              <span className="font-medium">Rs {order.delivery_fee}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600 dark:text-slate-400">Tax</span>
+              <span className="font-medium">Rs {order.tax_amount}</span>
+            </div>
+            <div className="flex justify-between text-lg font-bold border-t border-slate-200 dark:border-slate-600 pt-3">
+              <span>Total</span>
+              <span className="text-green-600">Rs {order.total_amount}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Delivery Address */}
+        {order.delivery_address && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              Delivery Address
+            </h3>
+            <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <MapPin className="w-5 h-5 text-slate-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-slate-900 dark:text-slate-100">
+                    {order.delivery_address.street}
+                  </p>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    {order.delivery_address.city}, {order.delivery_address.state}
+                  </p>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    {order.delivery_address.zipCode}, {order.delivery_address.country}
+                  </p>
+                  {(() => {
+                    const address = order.delivery_address as Record<string, unknown>
+                    return address.landmark ? (
+                      <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">
+                        Landmark: {String(address.landmark)}
+                      </p>
+                    ) : null
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Order Notes */}
+        {order.order_notes && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              Order Notes
+            </h3>
+            <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <MessageSquare className="w-5 h-5 text-slate-500 mt-0.5 flex-shrink-0" />
+                <p className="text-slate-700 dark:text-slate-300">{order.order_notes}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Order Timeline */}
+        <div className="space-y-4 pb-6">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            Order Timeline
+          </h3>
+          <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600 dark:text-slate-400">Ordered</span>
+              <span className="font-medium">
+                {new Date(order.created_at).toLocaleString()}
+              </span>
+            </div>
+            {order.updated_at !== order.created_at && (
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600 dark:text-slate-400">Last Updated</span>
+                <span className="font-medium">
+                  {new Date(order.updated_at).toLocaleString()}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
         </div>
       </div>
     </div>
